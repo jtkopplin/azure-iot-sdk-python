@@ -283,13 +283,36 @@ class AutoConnectStage(PipelineStage):
     def _run_op(self, op):
         # Any operation that requires a connection can trigger a connection if
         # we're not connected.
-        if op.needs_connection and not self.pipeline_root.connected:
-            logger.debug(
-                "{}({}): Op needs connection.  Queueing this op and starting a ConnectionOperation".format(
-                    self.name, op.name
+        if op.needs_connection:
+            if self.pipeline_root.connected:
+
+                # If we think we're connected, we pass the op down, but we also check the result.
+                # If we fail the op and we're not connected when we're done, we run through this
+                # stage again to connect.  This is more common than you might think because the
+                # *nix network stack won't detect a dropped connection until the client tries to
+                # send something, so it's very possible that we're wrong when we think we're
+                # conencted.
+
+                @pipeline_thread.runs_on_pipeline_thread
+                def on_operation_complete(op, error):
+                    if error and not self.pipeline_root.connected:
+                        logger.error(
+                            "{}({}): op failed with {} and we're not conencted.  Re-submitting.".format(
+                                self.name, op.name, error
+                            )
+                        )
+                        op.halt_completion()
+                        self.run_op(op)
+
+                op.add_callback(on_operation_complete)
+                self.send_op_down(op)
+            else:
+                logger.debug(
+                    "{}({}): Op needs connection.  Queueing this op and starting a ConnectionOperation".format(
+                        self.name, op.name
+                    )
                 )
-            )
-            self._do_connect(op)
+                self._do_connect(op)
 
         # Finally, if this stage doesn't need to do anything else with this operation,
         # it just passes it down.
