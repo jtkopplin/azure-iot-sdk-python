@@ -50,7 +50,7 @@ def add_operation_tests(
         @pytest.mark.it("Initializes 'name' attribute as the classname")
         def test_name(self, cls_type, init_kwargs):
             op = cls_type(**init_kwargs)
-            assert op.name == "{}({})".format(op.__class__.__name__, id(op))
+            assert op.name.startswith(op.__class__.__name__)
 
         @pytest.mark.it("Initializes 'completed' attribute as False")
         def test_completed(self, cls_type, init_kwargs):

@@ -12,6 +12,8 @@ from azure.iot.device.common import handle_exceptions
 
 logger = logging.getLogger(__name__)
 
+op_count = 0
+
 
 class PipelineOperation(object):
     """
@@ -46,11 +48,13 @@ class PipelineOperation(object):
             failed. The callback function must accept A PipelineOperation object which indicates
             the specific operation which has completed or failed.
         """
+        global op_count
         if self.__class__ == PipelineOperation:
             raise TypeError(
                 "Cannot instantiate PipelineOperation object.  You need to use a derived class"
             )
-        self.name = "{name}({id})".format(name=self.__class__.__name__, id=id(self))
+        self.name = "{name}({id})".format(name=self.__class__.__name__, id=op_count)
+        op_count += 1
         self.callback_stack = []
         self.needs_connection = False
         self.completed = False  # Operation has been fully completed
