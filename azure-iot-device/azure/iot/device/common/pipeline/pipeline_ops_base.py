@@ -50,7 +50,7 @@ class PipelineOperation(object):
             raise TypeError(
                 "Cannot instantiate PipelineOperation object.  You need to use a derived class"
             )
-        self.name = self.__class__.__name__
+        self.name = "{name}({id})".format(name=self.__class__.__name__, id=id(self))
         self.callback_stack = []
         self.needs_connection = False
         self.completed = False  # Operation has been fully completed
