@@ -447,12 +447,7 @@ class MQTTTransport(object):
         if rc:
             # This could result in ConnectionDroppedError or ProtocolClientError
             err = _create_error_from_rc_code(rc)
-            # If we get a ConnectionDroppedError, swallow it, because we have successfully disconnected!
-            if type(err) is exceptions.ConnectionDroppedError:
-                logger.warning("Dropped connection while disconnecting - swallowing error")
-                pass
-            else:
-                raise err
+            raise err
 
     def subscribe(self, topic, qos=1, callback=None):
         """

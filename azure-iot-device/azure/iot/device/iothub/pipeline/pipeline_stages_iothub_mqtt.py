@@ -76,7 +76,6 @@ class IoTHubMQTTTranslationStage(PipelineStage):
             else:
                 hostname = op.hostname
 
-            # TODO: test to make sure client_cert and sas_token travel down correctly
             worker_op = op.spawn_worker_op(
                 worker_op_type=pipeline_ops_mqtt.SetMQTTConnectionArgsOperation,
                 client_id=client_id,
@@ -102,10 +101,23 @@ class IoTHubMQTTTranslationStage(PipelineStage):
             # or issues a ReauthorizeConnectionOperation (if the lower level returned success for the UpdateSasTokenOperation)
             def on_token_update_complete(op, error):
                 if error:
-                    logger.error(
-                        "{}({}) token update failed.  returning failure {}".format(
+                    logger.info(
+                        "{}({}) token update failed. disconnecting, then returning failure {}".format(
                             self.name, op.name, error
                         )
+                    )
+                    op.halt_completion()
+
+                    # BKTODO: force disconnect here? or send disconnected event?
+                    def on_disconnect_done(disconnect_op, disconnct_error):
+                        # BKTODO or both.  force disconnect and make sure event is fired.
+                        logger.info(
+                            "{}({}): BKTODO: disconnect complete after failed token update."
+                        )
+                        op.complete(error)
+
+                    self.send_op_down(
+                        pipeline_ops_base.DisconnectOperation(callback=on_disconnect_done)
                     )
                 else:
                     logger.debug(
